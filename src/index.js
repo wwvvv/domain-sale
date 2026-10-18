@@ -1,55 +1,82 @@
-import domains from './domains.json' with { type: 'json' };
+import domains from './domains.json' with {type:'json'};
+import site from './site.json' with {type:'json'};
+import template from './template.json' with {type:'json'};
+import translateVendor from './vendor/translate.min.json' with {type:'json'};
+import {initClient} from './client.js';
 
-export function normalizeHost(value) {
-  const host = (value || '').trim().toLowerCase().replace(/\.$/, '');
-  if (!/^[a-z0-9.-]+$/.test(host) || host.includes('..')) return '';
-  return host.replace(/^www\./, '');
+const CLIENT_SCRIPT='('+initClient.toString()+')();';
+const SCRIPT_HEADERS={
+  'content-type':'application/javascript; charset=utf-8',
+  'cache-control':'public, max-age=86400',
+  'x-content-type-options':'nosniff',
+  'x-robots-tag':'noindex, nofollow'
+};
+
+export function normalizeHost(value){
+  const host=String(value||'').trim().toLowerCase().replace(/\.$/,'');
+  if(!/^[a-z0-9.-]+$/.test(host)||host.includes('..'))return '';
+  return host.replace(/^www\./,'');
+}
+export function escapeHtml(value){
+  return String(value).replace(/[&<>"']/g,char=>({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[char]));
 }
 
-export function renderDomain(host, inventory=domains) {
-  const domain = normalizeHost(host);
-  const config = Object.hasOwn(inventory, domain) ? inventory[domain] : null;
-  if (!config || config.status !== 'for_sale' || !Number.isFinite(config.price) ||
-      config.price <= 0 || !/^[A-Z]{3}$/.test(config.currency) ||
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(config.contact)) return null;
-  const data = JSON.stringify({domain,price:config.price,currency:config.currency,contact:config.contact})
-    .replace(/</g,'\\u003c').replace(/>/g,'\\u003e').replace(/&/g,'\\u0026');
-  return `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#101827"><title>Domain for sale</title>
-<style>:root{color-scheme:dark;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-*{box-sizing:border-box}body{margin:0;background:#101827;color:#fff;min-height:100vh;display:grid;place-items:center}
-main{text-align:center;padding:32px 20px;width:100%;max-width:800px}
-.eyebrow{color:#a5b4fc;letter-spacing:.16em;font-size:12px;font-weight:700}
-h1{font-size:clamp(38px,8vw,76px);overflow-wrap:anywhere;letter-spacing:-.05em;margin:28px 0 10px}
-p{color:#94a3b8}.price{font-size:clamp(30px,5vw,44px);font-weight:750;margin:28px 0}
-a{display:inline-flex;padding:14px 28px;background:#6366f1;color:white;text-decoration:none;border-radius:12px;font-weight:650}
-a:hover{background:#4f46e5}footer{margin-top:64px;color:#64748b;font-size:12px}</style>
-</head><body><main><div class="eyebrow">DOMAIN FOR SALE</div><p>此域名正在出售</p>
-<h1 id="domain"></h1><div class="price" id="price"></div><a id="contact" rel="nofollow">联系卖家</a>
-<footer>Domain for sale · Contact the owner</footer></main>
-<script>const d=${data};document.getElementById('domain').textContent=d.domain;
-document.getElementById('price').textContent=new Intl.NumberFormat('zh-CN',{style:'currency',currency:d.currency,maximumFractionDigits:2}).format(d.price);
-document.getElementById('contact').href='mailto:'+d.contact+'?subject='+encodeURIComponent('域名购买咨询：'+d.domain);
-document.title=d.domain+' | 域名出售';</script></body></html>`;
-}
-export async function handleRequest(request, inventory=domains) {
-    const url = new URL(request.url);
-    if (url.pathname !== '/') return new Response('Not Found',{status:404});
-    // Allow sample-domain previews only on workers.dev, never on sale domains.
-    const isWorkersDev = /^[a-z0-9-]+\.[a-z0-9-]+\.workers\.dev$/.test(url.hostname.toLowerCase());
-    const previewDomain = isWorkersDev ? url.searchParams.get('preview') : null;
-    if (isWorkersDev && !previewDomain) return new Response('Not Found',{status:404});
-    const html = renderDomain(previewDomain || url.hostname, inventory);
-    if (!html) return new Response('Not Found',{status:404});
-    return new Response(html,{headers:{
-      'content-type':'text/html; charset=utf-8',
-      'cache-control':isWorkersDev ? 'no-store' : 'public, max-age=300',
-      'x-robots-tag':isWorkersDev ? 'noindex, nofollow' : 'all',
-      'x-content-type-options':'nosniff',
-      'referrer-policy':'no-referrer',
-      'content-security-policy':"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
-    }});
+export function renderDomain(host,inventory=domains,settings=site){
+  const domain=normalizeHost(host);
+  const entry=Object.hasOwn(inventory,domain)?inventory[domain]:null;
+  if(!entry||entry.status!=='for_sale'||!Number.isFinite(entry.price)||
+     entry.price<=0||!/^[A-Z]{3}$/.test(entry.currency))return null;
+  const email=String(settings?.contactEmail||'');
+  if(!/^[^\s@<>]+@[^\s@<>]+\.[a-zA-Z0-9-]{2,}$/.test(email))return null;
+  const meanings=Array.isArray(entry.meanings)?entry.meanings:[];
+  const formattedPrice=new Intl.NumberFormat('zh-CN',{
+    style:'currency',currency:entry.currency,minimumFractionDigits:0,
+    maximumFractionDigits:2
+  }).format(entry.price);
+  const contact='mailto:'+email+'?subject='+encodeURIComponent('域名购买咨询：'+domain);
+  const meaningMarkup=meanings.length?[
+    '<section class="meaning" aria-labelledby="meaning-heading">',
+    '<div class="section-label" id="meaning-heading" data-i18n="meaning">域名寓意</div>',
+    '<div class="meaning-chips" id="meaning-chips">',
+    ...meanings.map(word=>'<span class="meaning-chip">'+escapeHtml(word)+'</span>'),
+    '</div></section>'
+  ].join(''):'';
+  const description=[domain,'域名出售','售价'+formattedPrice,...meanings].join('，');
+  const replacements={
+    DESCRIPTION:escapeHtml(description),DOMAIN:escapeHtml(domain),
+    AMOUNT:escapeHtml(entry.price),CURRENCY:escapeHtml(entry.currency),
+    PRICE:escapeHtml(formattedPrice),EMAIL:escapeHtml(email),
+    CONTACT_HREF:escapeHtml(contact),MEANING_SECTION:meaningMarkup
+  };
+  return template.html.replace(/\{\{([A-Z_]+)\}\}/g,(_,key)=>replacements[key]??'');
 }
 
-export default { fetch(request) { return handleRequest(request); } };
+export async function handleRequest(request,inventory=domains,settings=site){
+  const url=new URL(request.url);
+  const method=request.method||'GET';
+  if(method!=='GET'&&method!=='HEAD')
+    return new Response('Method Not Allowed',{status:405,headers:{allow:'GET, HEAD'}});
+  if(url.pathname==='/assets/client.js')
+    return new Response(method==='HEAD'?null:CLIENT_SCRIPT,{headers:SCRIPT_HEADERS});
+  if(url.pathname==='/assets/translate.min.js')
+    return new Response(method==='HEAD'?null:translateVendor.script,{headers:SCRIPT_HEADERS});
+  if(url.pathname!=='/')return new Response('Not Found',{status:404});
+
+  const isWorkersDev=/^[a-z0-9-]+\.[a-z0-9-]+\.workers\.dev$/.test(url.hostname.toLowerCase());
+  const previewDomain=isWorkersDev?url.searchParams.get('preview'):null;
+  if(isWorkersDev&&!previewDomain)return new Response('Not Found',{status:404});
+  const html=renderDomain(previewDomain||url.hostname,inventory,settings);
+  if(!html)return new Response('Not Found',{status:404});
+  return new Response(method==='HEAD'?null:html,{headers:{
+    'content-type':'text/html; charset=utf-8',
+    'cache-control':isWorkersDev?'no-store':'public, max-age=300',
+    'x-robots-tag':isWorkersDev?'noindex, nofollow':'all',
+    'x-content-type-options':'nosniff',
+    'referrer-policy':'no-referrer',
+    'content-security-policy':"default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; connect-src 'self' https://edge.microsoft.com; base-uri 'none'; object-src 'none'; form-action 'none'; frame-ancestors 'none'"
+  }});
+}
+
+export default {fetch(request){return handleRequest(request);}};

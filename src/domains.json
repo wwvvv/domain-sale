@@ -1,14 +1,13 @@
 {
-  "example.com": {
-    "price": 8888,
+  "xiac.cn": {
+    "price": 6666,
     "currency": "CNY",
-    "contact": "seller@example.com",
-    "status": "for_sale"
-  },
-  "example.net": {
-    "price": 12800,
-    "currency": "CNY",
-    "contact": "seller@example.com",
-    "status": "for_sale"
+    "status": "for_sale",
+    "meanings": [
+      "下厨",
+      "夏创",
+      "虾吃",
+      "夏城"
+    ]
   }
 }
