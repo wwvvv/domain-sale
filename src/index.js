@@ -6,11 +6,11 @@ export function normalizeHost(value) {
   return host.replace(/^www\./, '');
 }
 
-export function renderDomain(host) {
+export function renderDomain(host, inventory=domains) {
   const domain = normalizeHost(host);
-  const config = Object.hasOwn(domains, domain) ? domains[domain] : null;
+  const config = Object.hasOwn(inventory, domain) ? inventory[domain] : null;
   if (!config || config.status !== 'for_sale' || !Number.isFinite(config.price) ||
-      config.price < 0 || !/^[A-Z]{3}$/.test(config.currency) ||
+      config.price <= 0 || !/^[A-Z]{3}$/.test(config.currency) ||
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(config.contact)) return null;
   const data = JSON.stringify({domain,price:config.price,currency:config.currency,contact:config.contact})
     .replace(/</g,'\\u003c').replace(/>/g,'\\u003e').replace(/&/g,'\\u0026');
@@ -33,15 +33,14 @@ document.getElementById('price').textContent=new Intl.NumberFormat('zh-CN',{styl
 document.getElementById('contact').href='mailto:'+d.contact+'?subject='+encodeURIComponent('域名购买咨询：'+d.domain);
 document.title=d.domain+' | 域名出售';</script></body></html>`;
 }
-export default {
-  async fetch(request) {
+export async function handleRequest(request, inventory=domains) {
     const url = new URL(request.url);
     if (url.pathname !== '/') return new Response('Not Found',{status:404});
     // Allow sample-domain previews only on workers.dev, never on sale domains.
     const isWorkersDev = /^[a-z0-9-]+\.[a-z0-9-]+\.workers\.dev$/.test(url.hostname.toLowerCase());
     const previewDomain = isWorkersDev ? url.searchParams.get('preview') : null;
     if (isWorkersDev && !previewDomain) return new Response('Not Found',{status:404});
-    const html = renderDomain(previewDomain || url.hostname);
+    const html = renderDomain(previewDomain || url.hostname, inventory);
     if (!html) return new Response('Not Found',{status:404});
     return new Response(html,{headers:{
       'content-type':'text/html; charset=utf-8',
@@ -51,5 +50,6 @@ export default {
       'referrer-policy':'no-referrer',
       'content-security-policy':"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
     }});
-  }
-};
+}
+
+export default { fetch(request) { return handleRequest(request); } };
