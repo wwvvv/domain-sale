@@ -1,0 +1,14 @@
+{
+  "example.com": {
+    "price": 8888,
+    "currency": "CNY",
+    "contact": "seller@example.com",
+    "status": "for_sale"
+  },
+  "example.net": {
+    "price": 12800,
+    "currency": "CNY",
+    "contact": "seller@example.com",
+    "status": "for_sale"
+  }
+}
