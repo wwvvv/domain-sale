@@ -8,9 +8,9 @@
 
 ## 本地可视化管理
 
-在项目根目录执行：
+在项目根目录执行（Node.js 22+，Windows / macOS / Linux 通用）：
 
-    python -m http.server 4173 --bind 127.0.0.1
+    npm run admin
 
 然后在浏览器打开 http://127.0.0.1:4173/admin/ 。
 
