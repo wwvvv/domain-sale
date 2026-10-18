@@ -61,7 +61,7 @@ export function initClient() {
       try{
         price.textContent=new Intl.NumberFormat(language,{
           style:'currency',currency:price.getAttribute('data-currency'),
-          maximumFractionDigits:2
+          minimumFractionDigits:0,maximumFractionDigits:2
         }).format(Number(price.getAttribute('data-amount')));
       }catch(error){/* Keep server-rendered asking price. */}
     }
