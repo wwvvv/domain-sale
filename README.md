@@ -58,7 +58,7 @@ CSV 表头为：domain,price,currency,contact,status；也接受域名,售价,�
 
 如果不想创建令牌，可以“导出 JSON”，使用 GitHub 原生网页在分支中替换配置，然后发起 PR。
 
-要强制“审核通过后才部署”，还应进入仓库 Settings → Rules → Rulesets，针对 main 开启 Require a pull request before merging 和至少一名审核者。未配置保护规则时，有仓库写权限的人仍可能直接向 main 推送。
+要强制通过 PR 后才能进入 main，请在仓库 Settings → Rules → Rulesets 为 main 开启 Require a pull request before merging。若有第二位独立审核者，可以再开启至少一名 Reviewer 审批；单个仓库所有者不能批准自己创建的 PR，强制一人审批可能导致无法合并。未配置相关保护规则时，有仓库写权限的人仍可能直接向 main 推送。
 
 ## GitHub Actions
 
