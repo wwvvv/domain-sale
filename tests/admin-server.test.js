@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createAdminServer} from '../scripts/admin-server.mjs';
+import {request as nodeRequest} from 'node:http';
 
 test('admin server exposes only the local allowlisted static assets',async()=>{
   const server=createAdminServer();
@@ -22,6 +23,14 @@ test('admin server exposes only the local allowlisted static assets',async()=>{
     const inventoryData=await inventory.json();
     assert.equal(typeof inventoryData,'object');
     assert.equal(Array.isArray(inventoryData),false);
+
+    const rebindingStatus=await new Promise((resolve,reject)=>{
+      const req=nodeRequest({hostname:'127.0.0.1',port:server.address().port,path:'/admin/',headers:{Host:'attacker.example:4173'}},res=>{
+        res.resume();res.on('end',()=>resolve(res.statusCode));
+      });
+      req.on('error',reject);req.end();
+    });
+    assert.equal(rebindingStatus,403);
 
     const denied=await fetch(base+'/src/index.js');
     assert.equal(denied.status,404);
