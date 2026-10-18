@@ -1,4 +1,4 @@
-import domains from './domains.json';
+import domains from './domains.json' with { type: 'json' };
 
 export function normalizeHost(value) {
   const host = (value || '').trim().toLowerCase().replace(/\.$/, '');
