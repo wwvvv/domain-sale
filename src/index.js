@@ -38,7 +38,7 @@ export default {
     const url = new URL(request.url);
     if (url.pathname !== '/') return new Response('Not Found',{status:404});
     // Allow sample-domain previews only on workers.dev, never on sale domains.
-    const isWorkersDev = /^[a-z0-9-]+\\.[a-z0-9-]+\\.workers\\.dev$/.test(url.hostname.toLowerCase());
+    const isWorkersDev = /^[a-z0-9-]+\.[a-z0-9-]+\.workers\.dev$/.test(url.hostname.toLowerCase());
     const previewDomain = isWorkersDev ? url.searchParams.get('preview') : null;
     if (isWorkersDev && !previewDomain) return new Response('Not Found',{status:404});
     const html = renderDomain(previewDomain || url.hostname);
