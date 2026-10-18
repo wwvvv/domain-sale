@@ -24,6 +24,10 @@ export function createAdminServer(){
       'Referrer-Policy':'no-referrer',
       'Content-Security-Policy':"default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self' https://api.github.com; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'"
     };
+    // Refuse DNS-rebinding hostnames before serving an authenticated editor.
+    if (!/^(?:127\.0\.0\.1|localhost):\d{1,5}$/.test(String(request.headers.host||'').toLowerCase())) {
+      response.writeHead(403,headers);response.end('Forbidden');return;
+    }
     if(!['GET','HEAD'].includes(request.method||'')){
       response.writeHead(405,{...headers,'Allow':'GET, HEAD'});response.end('Method Not Allowed');return;
     }
