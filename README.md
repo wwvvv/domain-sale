@@ -64,7 +64,7 @@ CSV 表头为：domain,price,currency,contact,status；也接受域名,售价,�
 
 [Validate](.github/workflows/validate.yml)：push / pull_request 时执行 Node.js 测试、语法检查及 Wrangler dry-run，永不发布。
 
-[Deploy Preview](.github/workflows/deploy-preview.yml)：仅 main 分支变更或手动触发，并且仓库变量 DOMAIN_SALE_AUTO_DEPLOY 等于 true 才会实际部署。
+[Deploy Preview](.github/workflows/deploy-preview.yml)：仅在 Pull Request 合并到 main 后自动触发（不会因为直接推送 main 而发布），或由有权限人员手动触发；并且仓库变量 DOMAIN_SALE_AUTO_DEPLOY 等于 true 才会实际部署。手动触发属于明确的管理员操作，可跳过 PR 合并流程。
 
 首次启用自动部署前，打开 GitHub 仓库 Settings → Secrets and variables → Actions，配置：
 - Secrets：CLOUDFLARE_API_TOKEN（最小权限的 Workers Scripts Edit 令牌）

@@ -1,13 +1,8 @@
 name: Deploy Preview
 on:
-  push:
+  pull_request:
+    types: [closed]
     branches: [main]
-    paths:
-      - 'src/**'
-      - 'tests/**'
-      - 'wrangler.jsonc'
-      - 'package.json'
-      - '.github/workflows/deploy-preview.yml'
   workflow_dispatch:
 permissions:
   contents: read
@@ -17,7 +12,7 @@ concurrency:
 jobs:
   deploy-preview:
     # Enabled only after secrets and branch review rules are configured.
-    if: ${{ vars.DOMAIN_SALE_AUTO_DEPLOY == 'true' }}
+    if: ${{ vars.DOMAIN_SALE_AUTO_DEPLOY == 'true' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)) }}
     runs-on: ubuntu-latest
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
