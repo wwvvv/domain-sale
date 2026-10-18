@@ -1,87 +1,90 @@
-# domain-sale · 多域名极简出售页
+# domain-sale
 
-一个 Cloudflare Worker 服务多个待售域名；每个域名可以配置独立售价、币种、联系邮箱和出售状态。无需数据库、VPS 或复杂后台。
+基于 Cloudflare Workers 的**多域名共用极简出售页**。一个 Worker 根据访问域名自动展示其名称、售价和联系邮箱。
 
-- [GitHub 源码](https://github.com/wwvvv/domain-sale)
-- [Workers 测试页（演示数据）](https://domain-sale-preview.ddli.workers.dev/?preview=example.com)
-- 视觉理念参考 [LaunchPage.xyz](https://github.com/simplebytes-com/launchpage.xyz)（MIT），本项目采用独立实现。
+项目保持零管理后台、零数据库、无买家资料收集。
 
-## 本地可视化管理
+- GitHub：<https://github.com/wwvvv/domain-sale>
+- Cloudflare 预览：<https://domain-sale-preview.ddli.workers.dev/?preview=example.com>
+- 视觉参考：[LaunchPage.xyz](https://github.com/simplebytes-com/launchpage.xyz)（MIT，本站源码为独立实现）
 
-在项目根目录执行（Node.js 22+，Windows / macOS / Linux 通用）：
+## 日常维护：直接在 ChatGPT 当前会话中提出需求
 
-    npm run admin
+不需要打开管理后台，也不需要在浏览器填写 GitHub 令牌。可以直接告诉助手：
 
-然后在浏览器打开 http://127.0.0.1:4173/admin/ 。
+- 「新增待售域名 example.org，售价 6800 元，联系邮箱 sale@example.org。」
+- 「把 example.org 的售价改为 9800 元。」
+- 「example.org 已售出。」
+- 「暂停 example.net 的出售。」
+- 「这 20 个域名使用同一个邮箱，按下面的清单批量更新……」
 
-本地管理界面支持：
-- 新增、编辑、删除域名；搜索、状态筛选。
-- CSV/JSON 导入、合并、完全替换与导出。
-- 重复域名检查、非法邮箱/售价提示和导入覆盖确认。
-- 通过 GitHub Fine-grained PAT 创建一个新的审核 Pull Request。
+在获得授权后，助手会通过已连接的 GitHub 工具修改 `src/domains.json`、检查测试结果，并更新 Cloudflare **预览 Worker**。每次仍应核实源码已提交且部署成功；目前不会因为提交 GitHub 自动发布 Cloudflare。
 
-本地管理页面**不会发布至 Cloudflare Worker**。Worker /admin 路径始终返回 404。编辑器本身不带账户数据库，也不接收买家的数据。
+**没有添加或更改任何正式域名的绑定、DNS 或现有网站设置。** 将真实域名连接到 Worker 是独立操作，需要你明确提出上线请求。
 
-## 数据格式
+## 域名配置
 
-所有信息保存在 [src/domains.json](src/domains.json)。配置例如：
+唯一需要维护的出售清单文件：[src/domains.json](src/domains.json)。
 
-    {
-      "example.com": {
-        "price": 8888,
-        "currency": "CNY",
-        "contact": "sale@example.com",
-        "status": "for_sale"
-      }
-    }
+```json
+{
+  "example.com": {
+    "price": 8888,
+    "currency": "CNY",
+    "contact": "seller@example.com",
+    "status": "for_sale"
+  },
+  "example.net": {
+    "price": 12800,
+    "currency": "CNY",
+    "contact": "seller@example.com",
+    "status": "for_sale"
+  }
+}
+```
 
-字段含义：
-- domain：域名，自动规范为小写并去掉 www. 前缀。
-- price：出售中必须大于零，最多保留两位小数。
-- currency：例如 CNY / USD / SGD 等三位代码。
-- contact：有效的公开联系邮箱。
-- status：for_sale（出售中）、paused（暂停）、reserved（预留）、sold（已售出）。
+上述是演示数据，不代表已接入或实际出售中的域名。
 
-仅 for_sale 状态的域名能展示出售页，其余状态返回 404。
+| 字段 | 说明 |
+| --- | --- |
+| 配置对象的键 | 待售域名，使用规范的小写域名，不带协议、端口、`www.` 和路径 |
+| `price` | 数值型售价（出售中必须大于 0，最多两位小数） |
+| `currency` | 三位币种代码（例如 CNY、USD、SGD） |
+| `contact` | 用于 `mailto:` 联系按钮的公开邮箱 |
+| `status` | `for_sale`、`paused`、`reserved`、`sold` |
 
-CSV 表头为：domain,price,currency,contact,status；也接受域名,售价,币种,邮箱,状态等中文表头。输出 CSV 带有 UTF-8 BOM，便于 Excel 读取。合并会明确提示覆盖的条数；替换模式会明确提示被移除的条数。
+只有 `for_sale` 会显示出售页面，其他状态及不存在的域名均返回 HTTP 404。
 
-## GitHub 审核机制
+`www.example.com` 与 `example.com` 在代码中归并为同一份数据。但是否能实际访问 `www`，仍取决于 Cloudflare 是否为该主机名配置单独入口。
 
-1. 点击“同步 GitHub”，加载 main 分支最新出售配置。
-2. 使用管理界面增删改或导入 CSV。
-3. 选用 [GitHub Fine-grained Personal Access Token](https://github.com/settings/personal-access-tokens/new)，仅授权 wwvvv/domain-sale 仓库，将 Contents 和 Pull requests 权限设置为 Read and write。
-4. 在本地管理页输入此令牌，点击“创建审核 PR”。
-5. 管理器创建新分支及 PR，等待 GitHub CI 通过、人工审核，然后才能合并。
+## 本地检查
 
-浏览器不会永久保存 PAT，也不会将 PAT 放到 URL、Cookie、LocalStorage 或仓库。PR 写入按钮只在 localhost / 127.0.0.1 启用；页面不依赖第三方 JS CDN。请注意，具有足够权限的浏览器扩展仍可能读取页面输入，请在可信环境中使用。
+需要 Node.js 22+：
 
-如果不想创建令牌，可以“导出 JSON”，使用 GitHub 原生网页在分支中替换配置，然后发起 PR。
+```bash
+npm install
+npm run check:domains
+npm test
+npx wrangler deploy --dry-run --outdir dist
+```
 
-要强制通过 PR 后才能进入 main，请在仓库 Settings → Rules → Rulesets 为 main 开启 Require a pull request before merging。若有第二位独立审核者，可以再开启至少一名 Reviewer 审批；单个仓库所有者不能批准自己创建的 PR，强制一人审批可能导致无法合并。未配置相关保护规则时，有仓库写权限的人仍可能直接向 main 推送。
+GitHub Actions 自动进行以上配置验证、单元测试及 Wrangler dry-run，**不会自动发布到线上**。
 
-## GitHub Actions
+## Cloudflare 测试与上线
 
-[Validate](.github/workflows/validate.yml)：push / pull_request 时执行 Node.js 测试、语法检查及 Wrangler dry-run，永不发布。
+当前 Worker 名称为 `domain-sale-preview`，在 Cloudflare 主账号中仅开放 `workers.dev`。预览示例：
 
-[Deploy Preview](.github/workflows/deploy-preview.yml)：仅在 Pull Request 合并到 main 后自动触发（不会因为直接推送 main 而发布），或由有权限人员手动触发；并且仓库变量 DOMAIN_SALE_AUTO_DEPLOY 等于 true 才会实际部署。手动触发属于明确的管理员操作，可跳过 PR 合并流程。
+```text
+https://domain-sale-preview.ddli.workers.dev/?preview=example.com
+```
 
-首次启用自动部署前，打开 GitHub 仓库 Settings → Secrets and variables → Actions，配置：
-- Secrets：CLOUDFLARE_API_TOKEN（最小权限的 Workers Scripts Edit 令牌）
-- Secrets：CLOUDFLARE_ACCOUNT_ID（绑定目标 Cloudflare 账号的 Account ID）
-- Variables：DOMAIN_SALE_AUTO_DEPLOY，设为 true
+预览仅能查看配置中存在、且状态为 `for_sale` 的域名。预览地址返回 `noindex`、`no-store`，不带 `preview` 参数的根路径返回 404。
 
-在配置上述 Secrets 和分支审核规则之前，请保持 DOMAIN_SALE_AUTO_DEPLOY 未设置，自动部署 Job 将显示 Skipped，这是刻意保留的安全开关。
+正式上线需要先确认待售域名已托管到目标 Cloudflare 账号，并通过 Worker Custom Domain 逐一接入。**不要将现有正在提供服务的主域名误绑定为出售页。**
 
-自动部署只对 domain-sale-preview Worker 运行，校验 Wrangler 不包含 route、routes、env 或 triggers。提交代码不会新增任何自定义域名、修改现有 DNS 或覆盖其他 Worker。部署后会对 workers.dev 发起 HTTPS 冒烟测试。
+## 安全边界
 
-## 本地开发
-
-    npm install
-    npm test
-    npm run dev
-    npx wrangler deploy --name domain-sale-preview --dry-run
-
-预览只能在 workers.dev 上使用 ?preview=example.com 之类参数，前提是该域名存在于配置且状态为 for_sale。workers.dev 根路径返回 404，默认不允许索引。
-
-**正式出售域名的第一次接入**仍需为相应主机名绑定 Cloudflare Worker Custom Domain。现阶段不做任何正式域名绑定；请勿将仍然运营的网站域名绑定到出售页。
+- 公共仓库的配置文件对所有人可见：不要存储密码、API Token 或其他隐私凭据。
+- 管理后台、CSV 上传、GitHub PAT 浏览器输入和 Playwright 管理 UI 已从源码移除。
+- 所有配置修改保留 GitHub 版本历史，出现错误可以回滚。
+- 开发用 `example.com`、`example.net` 在接入真实域名前应按需替换。

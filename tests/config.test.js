@@ -1,25 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import inventory from '../src/domains.json' with {type:'json'};
-import {validateInventory} from '../admin/model.js';
+import {readFileSync,existsSync} from 'node:fs';
 
-test('repository inventory meets admin schema',()=>{
-  const clean=validateInventory(inventory);
-  assert.equal(Object.keys(clean).length,Object.keys(inventory).length);
+test('Wrangler is preview-only and has no custom-domain routes',()=>{
+  const wrangler=JSON.parse(readFileSync(new URL('../wrangler.jsonc',import.meta.url),'utf8'));
+  assert.equal(wrangler.name,'domain-sale-preview');
+  assert.equal(wrangler.workers_dev,true);
+  for(const forbidden of ['route','routes','env','triggers','site','assets']) {
+    assert.equal(wrangler[forbidden],undefined,'Unexpected config key '+forbidden);
+  }
 });
-test('automatic preview deployment requires merged PR, never direct push to main',()=>{
-  const workflow=fs.readFileSync(new URL('../.github/workflows/deploy-preview.yml',import.meta.url),'utf8');
-  assert.match(workflow,/pull_request:\s*\n\s*types: \[closed\]/);
-  assert.doesNotMatch(workflow,/^  push:/m);
-  assert.match(workflow,/github\.event\.pull_request\.merged == true/);
-  assert.match(workflow,/DOMAIN_SALE_AUTO_DEPLOY == 'true'/);
-});
-test('Wrangler stays on dedicated preview Worker without custom-domain routes',()=>{
-  const config=JSON.parse(fs.readFileSync(new URL('../wrangler.jsonc',import.meta.url),'utf8'));
-  assert.equal(config.name,'domain-sale-preview');
-  assert.equal(config.workers_dev,true);
-  assert.equal(config.route,undefined);
-  assert.equal(config.routes,undefined);
-  assert.equal(config.env,undefined);
+test('admin UI and secret-bearing deployment workflows are absent',()=>{
+  for(const path of ['../admin/','../scripts/admin-server.mjs','../playwright.config.js','../.github/workflows/deploy-preview.yml']) {
+    assert.equal(existsSync(new URL(path,import.meta.url)),false,'Unexpected artifact: '+path);
+  }
 });
