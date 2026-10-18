@@ -6,9 +6,11 @@
     "dev": "wrangler dev",
     "test": "node --test",
     "deploy": "wrangler deploy",
-    "admin": "node scripts/admin-server.mjs"
+    "admin": "node scripts/admin-server.mjs",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
-    "wrangler": "^4.0.0"
+    "wrangler": "^4.0.0",
+    "@playwright/test": "^1.56.0"
   }
 }
