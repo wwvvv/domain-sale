@@ -61,7 +61,7 @@ function remove(name){
 function decode(text){return new TextDecoder().decode(Uint8Array.from(atob(text.replace(/\s/g,'')),c=>c.charCodeAt(0)));}
 function encode(text){const bytes=new TextEncoder().encode(text);let result='';for(let i=0;i<bytes.length;i+=8192)result+=String.fromCharCode(...bytes.subarray(i,i+8192));return btoa(result);}
 async function github(path,{method='GET',token,body}={}){
-  const headers={'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'};
+  const headers={'Accept':'application/vnd.github+json'}; // Keep CORS preflight header allowlist minimal.
   if(token)headers.Authorization='Bearer '+token;
   if(body!==undefined)headers['Content-Type']='application/json';
   const response=await fetch('https://api.github.com'+path,{method,headers,cache:'no-store',body:body===undefined?undefined:JSON.stringify(body)});
