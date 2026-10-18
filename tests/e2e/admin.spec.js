@@ -93,11 +93,13 @@ test('mobile layout has no horizontal document overflow',async ({page}) => {
 
 test('CSV import and export preserve edited inventory',async ({page}) => {
   await prepare(page);
-  await page.locator('#fileInput').setInputFiles({
+  const chooserEvent=page.waitForEvent('filechooser');
+  await page.locator('#importCsvBtn').click();
+  const chooser=await chooserEvent;
+  await chooser.setFiles({
     name:'new.csv',mimeType:'text/csv',
     buffer:Buffer.from('domain,price,currency,contact,status\r\nimported.dev,500,USD,hi@example.dev,for_sale\r\n')
   });
-  // Hidden file input is loaded by the change listener even when set directly.
   await expect(page.locator('#totalCount')).toHaveText('3');
   const downloadEvent=page.waitForEvent('download');
   await page.locator('#exportCsvBtn').click();
