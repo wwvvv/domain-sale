@@ -29,7 +29,7 @@ a:hover{background:#4f46e5}footer{margin-top:64px;color:#64748b;font-size:12px}<
 <h1 id="domain"></h1><div class="price" id="price"></div><a id="contact" rel="nofollow">联系卖家</a>
 <footer>Domain for sale · Contact the owner</footer></main>
 <script>const d=${data};document.getElementById('domain').textContent=d.domain;
-document.getElementById('price').textContent=new Intl.NumberFormat('zh-CN',{style:'currency',currency:d.currency,maximumFractionDigits:0}).format(d.price);
+document.getElementById('price').textContent=new Intl.NumberFormat('zh-CN',{style:'currency',currency:d.currency,maximumFractionDigits:2}).format(d.price);
 document.getElementById('contact').href='mailto:'+d.contact+'?subject='+encodeURIComponent('域名购买咨询：'+d.domain);
 document.title=d.domain+' | 域名出售';</script></body></html>`;
 }

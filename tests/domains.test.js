@@ -65,3 +65,9 @@ test('worker entrypoint still serves current repository config',async()=>{
   const r=await worker.fetch(new Request('https://unknown.example/'));
   assert.equal(r.status,404);
 });
+
+test('selling price formatter preserves optional cents',()=>{
+  const html=renderDomain('example.com',{'example.com':{...examples['example.com'],price:199.95}});
+  assert.match(html,/maximumFractionDigits:2/);
+  assert.match(html,/199.95/);
+});

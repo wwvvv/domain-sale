@@ -6,5 +6,3 @@ dist/
 .dev.vars
 .dev.vars.*
 *.log
-domain-sale-domains.csv
-domain-sale-domains.json
