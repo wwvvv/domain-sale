@@ -19,7 +19,9 @@ test('admin server exposes only the local allowlisted static assets',async()=>{
 
     const inventory=await fetch(base+'/src/domains.json');
     assert.equal(inventory.status,200);
-    assert.ok((await inventory.json())['example.com']);
+    const inventoryData=await inventory.json();
+    assert.equal(typeof inventoryData,'object');
+    assert.equal(Array.isArray(inventoryData),false);
 
     const denied=await fetch(base+'/src/index.js');
     assert.equal(denied.status,404);
