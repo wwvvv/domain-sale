@@ -79,6 +79,11 @@ try{
 
   const japanese=await browser.newContext({locale:'ja-JP',viewport:{width:1280,height:800}});
   const ja=await japanese.newPage();
+  const translationDiagnostics=[];
+  ja.on('console',entry=>{if(['error','warning'].includes(entry.type())) translationDiagnostics.push('console: '+entry.text().slice(0,400));});
+  ja.on('pageerror',error=>translationDiagnostics.push('pageerror: '+error.message.slice(0,400)));
+  ja.on('requestfailed',req=>translationDiagnostics.push('failed request: '+req.url().slice(0,200)+' '+String(req.failure()?.errorText||'')));
+  ja.on('response',res=>{if(/edge\.microsoft\.com|translate\.zvo\.cn/.test(res.url())) translationDiagnostics.push('translation HTTP '+res.status()+' '+res.url().slice(0,150));});
   const translationAsset=ja.waitForResponse(response=>response.url().endsWith('/assets/translate.min.js'),{timeout:30000});
   await ja.goto(url,{waitUntil:'domcontentloaded',timeout:45000});
   const translationResponse=await translationAsset;
@@ -88,7 +93,14 @@ try{
   check('Pinned translate.js initialized',(await ja.evaluate(()=>window.translate.version))==='4.1.0.20260526');
   check('Japanese preserves domain meanings',await ja.locator('.meaning-chip').allTextContents()
     .then(values=>values.join('、')==='下厨、夏创、虾吃、夏城'));
+  // Loading the library is not proof that the remote translation finished.
+  // Allow the asynchronous Edge translator to complete and record failures explicitly.
+  try {
+    await ja.waitForFunction(()=>document.querySelector('.subtitle')?.textContent!=='This domain is for sale',null,{timeout:12000});
+  } catch { /* Keeping the English fallback is intentional if Edge is unavailable. */ }
   result.japaneseSubtitle=await ja.locator('.subtitle').textContent();
+  result.japaneseTranslationCompleted=result.japaneseSubtitle!=='This domain is for sale';
+  result.translationDiagnostics=translationDiagnostics.slice(0,20);
   await ja.screenshot({path:'smoke-results/xiac-desktop-ja.png',fullPage:true});
   await japanese.close();
 }finally{
