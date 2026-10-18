@@ -1,0 +1,34 @@
+name: Preview Smoke
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/preview-smoke.yml'
+      - 'scripts/verify-preview.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  external-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser harness without retaining frontend dependencies
+        run: |
+          npm install --no-audit --no-fund
+          npm install --no-audit --no-fund --no-save playwright@1.56.0
+          npx playwright install --with-deps chromium
+      - name: Check deployed xiac.cn sale preview using HTTPS and Chromium
+        run: node scripts/verify-preview.mjs
+      - name: Publish optional visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xiac-live-preview-check
+          path: smoke-results/
+          if-no-files-found: ignore
