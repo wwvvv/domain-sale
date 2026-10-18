@@ -88,6 +88,11 @@ export function initClient() {
       t.language.setDefaultTo(providers[locale]);
       t.selectLanguageTag.show=false;
       t.service.use('client.edge');
+      // client.edge translates through Microsoft directly; no IP lookup or
+      // translate.zvo.cn initialization/probing requests are needed.
+      if(t.request && t.request.api){
+        ['connectTest','init','ip','language'].forEach(function(key){t.request.api[key]='';});
+      }
       ['sale-domain','sale-price','meaning-chips','contact-email','language-select']
         .forEach(function(id){t.ignore.id.push(id);});
       t.language.translateLanguagesRange=['english'];

@@ -82,6 +82,7 @@ test('Japanese browser lazily loads locally pinned translate.js',()=>{
     service:{use:name=>calls.push(['service',name])},
     selectLanguageTag:{show:true},
     ignore:{id:ignored},
+    request:{api:{connectTest:'connectTest.json',init:'init.json',ip:'ip.json',language:'language.json'}},
     execute:()=>calls.push(['execute'])
   };
   t.spawned[0].onload();
@@ -90,6 +91,9 @@ test('Japanese browser lazily loads locally pinned translate.js',()=>{
   assert.ok(ignored.includes('meaning-chips'));
   assert.ok(ignored.includes('sale-price'));
   assert.equal(t.window.translate.selectLanguageTag.show,false);
+  for(const key of ['connectTest','init','ip','language']){
+    assert.equal(t.window.translate.request.api[key],'');
+  }
 });
 test('language picker retains preview query and supports auto reset',()=>{
   const t=browserStub({locale:'en-GB'});
