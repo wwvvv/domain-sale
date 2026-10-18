@@ -88,6 +88,15 @@ test('mobile layout has no horizontal document overflow',async ({page}) => {
   await expect(page.locator('#addBtn')).toBeVisible();
   const widths=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth}));
   expect(widths.scroll).toBeLessThanOrEqual(widths.client+1);
+  // Main form must not be forced into a thin column next to the submit button.
+  const controls=await page.evaluate(()=>{
+    const copy=document.querySelector('.publish-copy').getBoundingClientRect();
+    const submit=document.querySelector('.submit-btn').getBoundingClientRect();
+    return {copyWidth:copy.width,copyBottom:copy.bottom,submitTop:submit.top,submitWidth:submit.width};
+  });
+  expect(controls.copyWidth).toBeGreaterThan(220);
+  expect(controls.submitTop).toBeGreaterThanOrEqual(controls.copyBottom-1);
+  expect(controls.submitWidth).toBeGreaterThan(290);
   await page.screenshot({path:'test-results/domain-manager-mobile-390.png',fullPage:true});
 });
 
