@@ -12,7 +12,7 @@ Minimal multi-domain sale landing page on Cloudflare Workers. One Worker, multip
 
 For local testing: `curl -H "Host: example.com" http://127.0.0.1:8787/`
 
-**No production DNS or custom domain binding is included.** Unrecognized domains return 404. For testing on workers.dev, add the exact preview hostname to domains.json temporarily.
+**No production DNS or custom domain binding is included.** Unrecognized domains return 404. Preview example: `https://<worker>.<account>.workers.dev/?preview=example.com`. This works only on a `workers.dev` Host and only for configured sample domains. The preview has `noindex` and `no-store` headers; its bare root intentionally returns 404. Production domains ignore the `preview` parameter.
 
 ## Inspiration
 

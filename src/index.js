@@ -37,11 +37,16 @@ export default {
   async fetch(request) {
     const url = new URL(request.url);
     if (url.pathname !== '/') return new Response('Not Found',{status:404});
-    const html = renderDomain(url.hostname);
+    // Allow sample-domain previews only on workers.dev, never on sale domains.
+    const isWorkersDev = /^[a-z0-9-]+\\.[a-z0-9-]+\\.workers\\.dev$/.test(url.hostname.toLowerCase());
+    const previewDomain = isWorkersDev ? url.searchParams.get('preview') : null;
+    if (isWorkersDev && !previewDomain) return new Response('Not Found',{status:404});
+    const html = renderDomain(previewDomain || url.hostname);
     if (!html) return new Response('Not Found',{status:404});
     return new Response(html,{headers:{
       'content-type':'text/html; charset=utf-8',
-      'cache-control':'public, max-age=300',
+      'cache-control':isWorkersDev ? 'no-store' : 'public, max-age=300',
+      'x-robots-tag':isWorkersDev ? 'noindex, nofollow' : 'all',
       'x-content-type-options':'nosniff',
       'referrer-policy':'no-referrer',
       'content-security-policy':"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
